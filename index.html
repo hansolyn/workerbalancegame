@@ -8,6 +8,11 @@
 <meta property="og:title" content="직장인 밸런스게임">
 <meta property="og:description" content="15번의 선택으로 알아보는 나의 직장인 유형. 정답은 없고, 중간도 없습니다.">
 <meta property="og:type" content="website">
+<meta property="og:image" content="/cover.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="960">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="/cover.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
@@ -22,6 +27,7 @@
   --stamp: #D4372C;
   --mark: #FFD84A;
   --on-mark: #17203A;
+  --cover-navy: #231A36;
   --display: "Black Han Sans", "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   --body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
 }
@@ -38,6 +44,7 @@
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 body {
   margin: 0;
   background: var(--bg); color: var(--ink);
@@ -57,11 +64,15 @@ button:focus-visible { outline: 3px solid var(--stamp); outline-offset: 3px; }
 
 /* 표지 */
 .cover { display: flex; flex-direction: column; gap: 22px; padding-top: 24px; }
-.cover h1 { font-family: var(--display); font-weight: 400; font-size: clamp(44px, 14vw, 64px); line-height: 1.05; text-wrap: balance; }
-.cover h1 em { font-style: normal; color: var(--stamp); }
-.cover .lead { font-size: 18px; }
-.facts { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0; list-style: none; }
-.facts li { border: 1.5px solid var(--ink); border-radius: 999px; padding: 4px 12px; font-size: 14px; font-weight: 600; }
+.cover-img { display: block; width: 100%; height: auto; aspect-ratio: 1200 / 960; border-radius: 18px; border: 2px solid var(--cover-navy); background: #D3D1FD; }
+/* 표지 이미지의 노란 타이틀(#FFD82E)과 남색 외곽선(#231A36)에 맞춘 시작 버튼 */
+.start {
+  background: #FFD82E; color: #231A36; border: 3px solid #231A36; border-radius: 16px;
+  padding: 16px; font-size: 21px; font-weight: 800; width: 100%;
+  box-shadow: 0 6px 0 #231A36; transition: transform .08s, box-shadow .08s;
+}
+.start:hover { background: #FFE15A; }
+.start:active { transform: translateY(4px); box-shadow: 0 2px 0 #231A36; }
 .primary {
   background: var(--ink); color: var(--bg); border: 0; border-radius: 14px;
   padding: 18px; font-size: 19px; font-weight: 700; width: 100%;
@@ -236,10 +247,9 @@ function renderCover() {
   app.innerHTML = `
     <section class="cover">
       <p class="eyebrow">둘 중 하나만 고르세요</p>
-      <h1>직장인<br>밸런스<em>게임</em></h1>
-      <p class="lead">15번의 선택으로 알아보는 나의 직장인 유형. 정답은 없고, 중간도 없습니다.</p>
-      <ul class="facts"><li>15문항</li><li>약 2분</li><li>16개 유형</li></ul>
-      <button class="primary" id="start-button">게임 시작</button>
+      <h1 class="sr-only">직장인 밸런스게임</h1>
+      <img class="cover-img" src="/cover.jpg" width="1200" height="960" alt="직장인 밸런스게임. 15개의 질문으로 알아보는 나의 직장인 유형, 16가지 유형이 기다려요.">
+      <button class="start" id="start-button">게임 시작</button>
       <p class="note">개인정보는 묻지 않습니다. 선택 결과는 문항별 비율 집계에만 쓰입니다.</p>
     </section>`;
   document.getElementById("start-button").onclick = renderQuestion;
