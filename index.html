@@ -149,6 +149,12 @@ button:focus-visible { outline: 3px solid var(--stamp); outline-offset: 3px; }
 .same { border: 2px solid var(--ink); border-radius: 16px; padding: 16px 18px; background: var(--card); display: flex; flex-direction: column; gap: 4px; }
 .same .big { font-family: var(--display); font-size: 34px; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .same .big small { font-family: var(--body); font-size: 16px; font-weight: 600; }
+.match { border: 1.5px solid var(--line); border-radius: 14px; padding: 14px 16px; background: var(--card); display: flex; flex-direction: column; gap: 3px; }
+.match-label { font-size: 13px; font-weight: 700; letter-spacing: .04em; color: var(--muted); }
+.match.clash .match-label { color: var(--stamp); }
+.match-name { font-size: 19px; font-weight: 700; }
+.match-name span { font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: .12em; margin-left: 4px; }
+.match-why { font-size: 14px; }
 .credit { font-size: 13px; color: var(--muted); text-align: center; font-weight: 600; letter-spacing: .04em; }
 .shot { position: fixed; inset: 0; z-index: 20; background: rgba(10, 14, 24, .82); overflow-y: auto;
   padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(16px, env(safe-area-inset-bottom, 0px)); }
@@ -218,6 +224,26 @@ const TYPES = {
   SFME: ["조용한 만능 지원군", "티 내지 않고 빈틈을 메우는 사람입니다."],
   SFTR: ["자유로운 고수", "방식도 시간도 내 마음대로, 대신 결과로 말합니다."],
   SFTE: ["마이웨이 자유인", "경쟁도 간섭도 사양, 내 속도로 갑니다."]
+};
+
+// 재미로 보는 궁합. good = 잘 맞는 유형, clash = 부딪힐 수 있는 유형(4축이 모두 반대). [상대 코드, 이유]
+const MATCH = {
+  WPMR: { good: ["SFMR", "판을 짜주면 알아서 해결하고, 성과만큼 받자는 데 뜻이 같습니다."], clash: ["SFTE", "판에 끌어들이려 할수록 멀어집니다."] },
+  WPME: { good: ["SFME", "계획을 세우면 빈틈을 조용히 메워줍니다."], clash: ["SFTR", "같이 나누자는 말에 \"내 결과는 내 것\"이 돌아옵니다."] },
+  WPTR: { good: ["SPTR", "정해진 시간 안에 끝내자는 합의가 말없이 됩니다."], clash: ["SFME", "일정과 인정이 중요한데, 상대는 둘 다 관심이 없습니다."] },
+  WPTE: { good: ["SPTE", "예측 가능한 하루를 함께 지킵니다."], clash: ["SFMR", "다 같이 퇴근하자는데 혼자 남아 더 법니다."] },
+  WFMR: { good: ["SPMR", "기회를 물어오면 계획대로 마무리해 줍니다."], clash: ["SPTE", "판을 흔들수록 상대의 하루가 무너집니다."] },
+  WFME: { good: ["SPME", "일단 뛰는 사람과 정확히 마무리하는 사람의 조합입니다."], clash: ["SPTR", "같이 뛰자는데 상대는 혼자 끝내고 퇴근합니다."] },
+  WFTR: { good: ["SFTR", "서로 방식에 간섭하지 않고 결과로 인정합니다."], clash: ["SPME", "즉흥과 정석이 매번 부딪힙니다."] },
+  WFTE: { good: ["SFTE", "경쟁 없이 서로의 속도를 존중합니다."], clash: ["SPMR", "수다를 걸면 숫자로 답이 돌아옵니다."] },
+  SFMR: { good: ["WPMR", "판을 깔아주면 실력만 보여주면 됩니다. 값도 제대로 쳐줍니다."], clash: ["WPTE", "더 벌고 싶은데 다 같이 퇴근하자고 합니다."] },
+  SFME: { good: ["WPME", "계획을 대신 세워주니 조용히 내 몫만 하면 됩니다."], clash: ["WPTR", "일정과 인정을 챙기라는데, 둘 다 관심이 없습니다."] },
+  SPTR: { good: ["WPTR", "정해진 시간 안에 끝내자는 합의가 말없이 됩니다."], clash: ["WFME", "혼자 끝내고 퇴근하려는데 같이 뛰자고 합니다."] },
+  SPTE: { good: ["WPTE", "내 루틴을 지켜주는 든든한 방패입니다."], clash: ["WFMR", "판을 흔들 때마다 내 하루가 무너집니다."] },
+  SPMR: { good: ["WFMR", "기회를 물어다 주면 계획대로 숫자를 만듭니다."], clash: ["WFTE", "숫자를 만들 시간에 수다가 걸려옵니다."] },
+  SPME: { good: ["WFME", "앞에서 뛰어주니 뒤에서 정확히 마무리할 수 있습니다."], clash: ["WFTR", "정석대로 가려는데 매번 즉흥이 끼어듭니다."] },
+  SFTR: { good: ["WFTR", "서로 방식에 간섭하지 않고 결과로 인정합니다."], clash: ["WPME", "내 결과까지 같이 나누자고 합니다."] },
+  SFTE: { good: ["WFTE", "경쟁 없이 서로의 속도를 존중합니다."], clash: ["WPMR", "자꾸 판에 끌어들이려 해서 피곤합니다."] }
 };
 
 const app = document.getElementById("app");
@@ -373,6 +399,15 @@ function renderResult() {
        <p class="note">참여자 ${st.total.toLocaleString("ko-KR")}명 기준 · 16개 유형 중 ${st.rank}번째로 많아요</p>`
     : `<p class="note">참여자가 ${MIN_VOTES}명 이상 모이면 나와 같은 유형의 비율을 보여드려요.</p>`;
 
+  const m = MATCH[code];
+  const matchCard = (label, cls, [c, why]) => `
+    <div class="match ${cls}">
+      <p class="match-label">${label}</p>
+      <p class="match-name">${TYPES[c][0]} <span>${c}</span></p>
+      <p class="match-why">${why}</p>
+    </div>`;
+  const matchHtml = matchCard("잘 맞는 유형", "good", m.good) + matchCard("부딪힐 수 있는 유형", "clash", m.clash);
+
   app.innerHTML = `
     <div id="capture">
       <article class="badge">
@@ -386,6 +421,7 @@ function renderResult() {
       </article>
       <section class="section"><h3>나와 같은 유형은?</h3><div class="same">${sameHtml}</div></section>
       <section class="section"><h3>네 가지 축</h3>${axesHtml}</section>
+      <section class="section"><h3>유형 궁합</h3>${matchHtml}<p class="note">재미로 보는 궁합입니다.</p></section>
       <section class="section">
         <h3>보너스 라운드</h3>
         <ul class="bonus-list">${bonusHtml}</ul>
