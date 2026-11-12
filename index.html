@@ -485,7 +485,8 @@ function showShot(blob, filename) {
   box.querySelector("#shot-close").onclick = close;
   box.onclick = e => { if (e.target === box) close(); };
   if (canShare) box.querySelector("#shot-share").onclick = () => {
-    navigator.share({ files: [file], title: "직장인 밸런스게임" }).catch(() => {});
+    // 제목 대신 링크를 함께 보낸다. 링크는 text에 넣어야 파일과 같이 전달되는 앱이 많다.
+    navigator.share({ files: [file], text: "나의 직장인 유형은? https://workerbalancegame.vercel.app/" }).catch(() => {});
   };
 }
 
