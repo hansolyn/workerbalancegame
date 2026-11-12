@@ -145,13 +145,27 @@ button:focus-visible { outline: 3px solid var(--stamp); outline-offset: 3px; }
 .bonus-list span:last-child { font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 600; white-space: nowrap; }
 .actions { display: flex; gap: 10px; flex-wrap: wrap; }
 .actions > * { flex: 1 1 160px; }
-#copy-out { width: 100%; min-height: 90px; font: inherit; font-size: 14px; border: 1.5px solid var(--line); border-radius: 10px; padding: 10px; background: var(--card); color: var(--ink); }
+#capture { display: flex; flex-direction: column; gap: 20px; background: var(--bg); }
+.same { border: 2px solid var(--ink); border-radius: 16px; padding: 16px 18px; background: var(--card); display: flex; flex-direction: column; gap: 4px; }
+.same .big { font-family: var(--display); font-size: 34px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.same .big small { font-family: var(--body); font-size: 16px; font-weight: 600; }
+.credit { font-size: 13px; color: var(--muted); text-align: center; font-weight: 600; letter-spacing: .04em; }
+.shot { position: fixed; inset: 0; z-index: 20; background: rgba(10, 14, 24, .82); overflow-y: auto;
+  padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(16px, env(safe-area-inset-bottom, 0px)); }
+.shot-inner { max-width: 420px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+.shot img { width: 100%; height: auto; border-radius: 12px; display: block; }
+.shot p { color: #EEF1F8; font-size: 14px; text-align: center; }
+.shot .row { display: flex; gap: 10px; flex-wrap: wrap; }
+.shot .row > * { flex: 1 1 120px; text-align: center; text-decoration: none; }
+.shot .light { background: #FFD82E; color: #231A36; border: 0; border-radius: 12px; padding: 14px; font-weight: 700; font-size: 16px; }
+.shot .dim { background: transparent; color: #EEF1F8; border: 1.5px solid #9AA4BF; border-radius: 12px; padding: 14px; font-weight: 600; font-size: 16px; }
 @media (prefers-reduced-motion: reduce) { .opt::before, .bar .fill { transition: none; } }
 </style>
 </head>
 <body>
 
 <main id="app"></main>
+<script src="/html2canvas.min.js"></script>
 
 <script>
 // 축: 첫 글자가 a 선택지 쪽
@@ -219,6 +233,18 @@ function pctA(id) {
   const a = Number(STATS[id + ":a"]) || 0, b = Number(STATS[id + ":b"]) || 0;
   if (a + b < MIN_VOTES) return null;
   return Math.round((a / (a + b)) * 100);
+}
+
+// 같은 유형 통계: 유형 집계가 MIN_VOTES건 이상일 때만, 방금 끝낸 본인을 포함해 계산한다.
+function typeStat(code) {
+  const counts = {};
+  let total = 0;
+  for (const k in STATS) if (k.startsWith("t:")) { counts[k.slice(2)] = Number(STATS[k]) || 0; total += counts[k.slice(2)]; }
+  if (total < MIN_VOTES) return null;
+  const mine = (counts[code] || 0) + 1;
+  total += 1;
+  const rank = 1 + Object.keys(TYPES).filter(c => c !== code && (counts[c] || 0) > mine - 1).length;
+  return { pct: Math.max(1, Math.round((mine / total) * 100)), rank, total };
 }
 
 function submitAnswers() {
@@ -341,40 +367,89 @@ function renderResult() {
     const k = S.answers[q.id], pa = pctA(q.id);
     return `<li><span>${q[k]}</span><span>${pa === null ? "" : (k === "a" ? pa : 100 - pa) + "%와 같은 선택"}</span></li>`;
   }).join("");
-  const shareText = `나의 직장인 유형은 「${name}」 (${code})\n${tagline}\n` +
-    AXIS_ORDER.map(ax => `${AXES[ax].name}: ${AXES[ax][sc[ax].side][1]} ${sc[ax].n}:${sc[ax].total - sc[ax].n}`).join(" / ");
+  const st = typeStat(code);
+  const sameHtml = st
+    ? `<p class="big">${st.pct}%<small> 가 나와 같은 유형</small></p>
+       <p class="note">참여자 ${st.total.toLocaleString("ko-KR")}명 기준 · 16개 유형 중 ${st.rank}번째로 많아요</p>`
+    : `<p class="note">참여자가 ${MIN_VOTES}명 이상 모이면 나와 같은 유형의 비율을 보여드려요.</p>`;
 
   app.innerHTML = `
-    <article class="badge">
-      <div class="badge-top"><span>직장인 유형 확인증</span><span>${code}</span></div>
-      <div class="badge-body">
-        <p class="code">${code.split("").join(" ")}</p>
-        <h2>${name}</h2>
-        <p class="tagline">${tagline}</p>
-      </div>
-      <span class="done" aria-hidden="true">분석<br>완료</span>
-    </article>
-    <section class="section"><h3>네 가지 축</h3>${axesHtml}</section>
-    <section class="section">
-      <h3>보너스 라운드</h3>
-      <ul class="bonus-list">${bonusHtml}</ul>
-    </section>
-    <div class="actions">
-      <button class="primary" id="copy-button">결과 복사하기</button>
-      <button class="ghost" id="restart-button">다시 하기</button>
+    <div id="capture">
+      <article class="badge">
+        <div class="badge-top"><span>직장인 유형 확인증</span><span>${code}</span></div>
+        <div class="badge-body">
+          <p class="code">${code.split("").join(" ")}</p>
+          <h2>${name}</h2>
+          <p class="tagline">${tagline}</p>
+        </div>
+        <span class="done" aria-hidden="true">분석<br>완료</span>
+      </article>
+      <section class="section"><h3>나와 같은 유형은?</h3><div class="same">${sameHtml}</div></section>
+      <section class="section"><h3>네 가지 축</h3>${axesHtml}</section>
+      <section class="section">
+        <h3>보너스 라운드</h3>
+        <ul class="bonus-list">${bonusHtml}</ul>
+      </section>
+      <p class="credit">직장인 밸런스게임 · workerbalancegame.vercel.app</p>
     </div>
-    <textarea id="copy-out" hidden readonly></textarea>`;
+    <div class="actions">
+      <button class="primary" id="shot-button">결과 이미지 저장</button>
+      <button class="ghost" id="restart-button">다시 하기</button>
+    </div>`;
   document.getElementById("restart-button").onclick = renderCover;
-  const copyBtn = document.getElementById("copy-button");
-  copyBtn.onclick = () => {
-    const fallback = () => {
-      const ta = document.getElementById("copy-out");
-      ta.value = shareText; ta.hidden = false; ta.select();
-      copyBtn.textContent = "아래 글을 복사하세요";
-    };
-    try {
-      navigator.clipboard.writeText(shareText).then(() => { copyBtn.textContent = "복사했습니다"; }, fallback);
-    } catch (e) { fallback(); }
+  const shotBtn = document.getElementById("shot-button");
+  shotBtn.onclick = () => saveImage(shotBtn, code);
+}
+
+// 결과 영역을 이미지로 만들어 화면에 띄운다. 저장이 막힌 앱 내 브라우저에서도 길게 눌러 저장할 수 있다.
+async function saveImage(btn, code) {
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = "이미지 만드는 중…";
+  try {
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    const el = document.getElementById("capture");
+    const bg = getComputedStyle(document.body).backgroundColor;
+    const src = await html2canvas(el, { scale: 2, backgroundColor: bg, useCORS: true, logging: false });
+    // 가장자리에 여백을 둔 최종 이미지
+    const pad = 40, out = document.createElement("canvas");
+    out.width = src.width + pad * 2; out.height = src.height + pad * 2;
+    const ctx = out.getContext("2d");
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, out.width, out.height);
+    ctx.drawImage(src, pad, pad);
+    const blob = await new Promise(r => out.toBlob(r, "image/png"));
+    showShot(blob, "직장인밸런스게임_" + code + ".png");
+  } catch (e) {
+    btn.textContent = "이미지를 만들지 못했어요. 화면을 캡처해 주세요";
+    setTimeout(() => { btn.textContent = label; btn.disabled = false; }, 2500);
+    return;
+  }
+  btn.textContent = label; btn.disabled = false;
+}
+
+function showShot(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const file = new File([blob], filename, { type: "image/png" });
+  const canShare = !!(navigator.canShare && navigator.canShare({ files: [file] }));
+  const box = document.createElement("div");
+  box.className = "shot";
+  box.setAttribute("role", "dialog");
+  box.setAttribute("aria-label", "결과 이미지");
+  box.innerHTML = `
+    <div class="shot-inner">
+      <div class="row">
+        <a class="light" id="shot-download" href="${url}" download="${filename}">저장하기</a>
+        ${canShare ? `<button class="light" id="shot-share">공유하기</button>` : ""}
+        <button class="dim" id="shot-close">닫기</button>
+      </div>
+      <p>저장이 안 되면 이미지를 길게 눌러 저장하세요.</p>
+      <img src="${url}" alt="나의 직장인 유형 결과 이미지">
+    </div>`;
+  document.body.appendChild(box);
+  const close = () => { box.remove(); URL.revokeObjectURL(url); };
+  box.querySelector("#shot-close").onclick = close;
+  box.onclick = e => { if (e.target === box) close(); };
+  if (canShare) box.querySelector("#shot-share").onclick = () => {
+    navigator.share({ files: [file], title: "직장인 밸런스게임" }).catch(() => {});
   };
 }
 

@@ -12,7 +12,12 @@ module.exports = async (req, res) => {
   if (!valid) return res.status(400).json({ ok: false });
   if (!configured()) return res.status(200).json({ ok: false });
   try {
-    await call("/pipeline", IDS.map(id => ["HINCRBY", KEY, id + ":" + answers[id], 1]));
+    // 유형 코드도 서버에서 계산해 함께 센다(관계·실행·보상·성과 순, 3문항 중 a가 2개 이상이면 앞 글자).
+    const code = [["r", "W", "S"], ["p", "P", "F"], ["m", "M", "T"], ["e", "R", "E"]].map(([k, x, y]) =>
+      [1, 2, 3].filter(n => answers[k + n] === "a").length >= 2 ? x : y).join("");
+    const cmds = IDS.map(id => ["HINCRBY", KEY, id + ":" + answers[id], 1]);
+    cmds.push(["HINCRBY", KEY, "t:" + code, 1]);
+    await call("/pipeline", cmds);
     res.status(200).json({ ok: true });
   } catch (e) {
     res.status(200).json({ ok: false });
