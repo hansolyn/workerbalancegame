@@ -158,7 +158,7 @@ button:focus-visible { outline: 3px solid var(--stamp); outline-offset: 3px; }
 .match-why { font-size: 14px; }
 .credit { font-size: 14px; color: var(--muted); text-align: center; font-weight: 700; letter-spacing: .06em; }
 .copyright { max-width: 460px; margin: 36px auto 0; font-size: 12px; color: var(--muted); text-align: center; }
-.shot { position: fixed; inset: 0; z-index: 20; background: rgba(10, 14, 24, .97); overflow-y: auto;
+.shot { position: fixed; inset: 0; z-index: 20; background: #0A0E18; overflow-y: auto;
   padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(16px, env(safe-area-inset-bottom, 0px)); }
 .shot-inner { max-width: 420px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
 .shot img { width: 100%; height: auto; border-radius: 12px; display: block; }
@@ -255,7 +255,7 @@ let S;
 // 문항별 집계: 페이지를 열 때 한 번 받아오고, 문항당 MIN_VOTES건 이상 쌓인 문항만 비율을 보여준다.
 const MIN_VOTES = 30;
 let STATS = {};
-fetch("/api/stats").then(r => r.ok ? r.json() : null).then(d => { if (d && d.counts) STATS = d.counts; }).catch(() => {});
+const statsReady = fetch("/api/stats").then(r => r.ok ? r.json() : null).then(d => { if (d && d.counts) STATS = d.counts; }).catch(() => {});
 
 // a 선택지의 비율(%). 집계가 없거나 응답 수가 모자라면 null.
 function pctA(id) {
@@ -477,7 +477,15 @@ function showShot(blob, filename) {
   let buttons = "", hint = "";
   if (canShare) buttons += `<button class="light" id="shot-share">공유하기</button>`;
   if (!isMobile) buttons += `<a class="light" id="shot-download" href="${url}" download="${filename}">저장하기</a>`;
-  if (isMobile && !canShare) hint = "이 브라우저에서는 공유가 안 돼요. 화면을 캡처해 주세요.";
+  if (isMobile && !canShare) {
+    hint = "이 브라우저에서는 공유가 안 돼요. 화면을 캡처해 주세요.";
+    if (!isIOS) {
+      // 안드로이드 앱 내 브라우저(카카오톡 등)에는 공유 기능이 없다. 결과를 주소에 담아 크롬에서 같은 결과 화면을 연다.
+      const token = ALL_IDS.map(id => S.answers[id]).join("");
+      buttons += `<a class="light" id="shot-chrome" href="intent://workerbalancegame.vercel.app/?r=${token}#Intent;scheme=https;package=com.android.chrome;end">크롬에서 열어 공유하기</a>`;
+      hint = "이 브라우저에서는 이미지 공유가 안 돼요. 크롬에서 열면 이 결과 그대로 공유할 수 있어요. 화면을 캡처하셔도 됩니다.";
+    }
+  }
   const box = document.createElement("div");
   box.className = "shot";
   box.setAttribute("role", "dialog");
@@ -505,7 +513,18 @@ function showShot(blob, filename) {
   };
 }
 
-renderCover();
+// 주소에 결과(?r=)가 담겨 있으면 게임 없이 그 결과 화면을 바로 보여준다. 이미 집계된 응답이므로 다시 집계하지 않는다.
+const ALL_IDS = QUESTIONS.concat(BONUS).map(q => q.id);
+const restored = new URLSearchParams(location.search).get("r");
+if (restored && new RegExp("^[ab]{" + ALL_IDS.length + "}$").test(restored)) {
+  reset();
+  S.sent = true;
+  ALL_IDS.forEach((id, i) => { S.answers[id] = restored[i]; });
+  S.idx = S.order.length;
+  statsReady.then(renderResult, renderResult);
+} else {
+  renderCover();
+}
 </script>
 </body>
 </html>
